@@ -28,6 +28,13 @@
 			<groupId>org.liquibase</groupId>
 			<artifactId>liquibase-core</artifactId>
 		</dependency>
+		
+		<dependency>
+		    <groupId>ma.glasnost.orika</groupId>
+		    <artifactId>orika-core</artifactId>
+		    <version>1.5.4</version>
+		</dependency>
+		
 
 		<dependency>
 			<groupId>org.postgresql</groupId>
