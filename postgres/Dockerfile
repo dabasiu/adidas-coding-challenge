@@ -1,0 +1,3 @@
+FROM postgres
+ENV POSTGRES_PASSWORD qwpo1209
+ENV POSTGRES_DB adidas_subscription
