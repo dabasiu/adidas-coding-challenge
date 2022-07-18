@@ -20,11 +20,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.adidas.subscription.dto.SubscriptionApiDTO;
 import com.adidas.subscription.dto.responses.SubscriptionAPICreateResponseDTO;
+import com.adidas.subscription.dto.responses.SubscriptionAPIGetAllResponseDTO;
+import com.adidas.subscription.dto.responses.SubscriptionAPIGetResponseDTO;
+import com.adidas.subscription.dto.responses.SubscriptionAPIResponseDTO;
 import com.adidas.subscription.service.SubscriptionServiceProxy;
 
 import io.swagger.annotations.ApiOperation;
@@ -45,29 +49,36 @@ public class SubscriptionController {
 	@Autowired
 	private SubscriptionServiceProxy proxy;
 	
-	@GetMapping("/getAll")
+	@GetMapping("/")
 	public @ResponseBody Map<String, Object> getAll() {
 		
 		final Map<String, Object> response = new HashMap<>();
 		
 		try {
+			SubscriptionAPIGetAllResponseDTO resp = proxy.getAllSubscriptions();
+			
+			response.put("data", resp.getDtos());
 			response.put("success", true);
 		} catch(Exception e) {
-			
+			log.error(e.getMessage(), e);
 		}
 		
 		return response;
 	}
 	
 	@GetMapping("/{id}")
-	public @ResponseBody Map<String, Object> getSubscription() {
+	public @ResponseBody Map<String, Object> getSubscription(@RequestParam Long id) {
 		
 		final Map<String, Object> response = new HashMap<>();
 		
 		try {
+			
+			SubscriptionAPIGetResponseDTO resp = proxy.getSubscription(id);
+			
+			response.put("data", resp.getDto());
 			response.put("success", true);
 		} catch(Exception e) {
-			
+			log.error(e.getMessage(), e);
 		}
 		
 		return response;
@@ -99,14 +110,17 @@ public class SubscriptionController {
 	}
 	
 	@DeleteMapping("/{id}")
-	public @ResponseBody Map<String, Object> cancelSubscription() {
+	public @ResponseBody Map<String, Object> cancelSubscription(@RequestParam Long id) {
 		
 		final Map<String, Object> response = new HashMap<>();
 		
 		try {
-			response.put("success", true);
-		} catch(Exception e) {
 			
+			SubscriptionAPIResponseDTO resp = proxy.cancelSubscription(id);
+			
+			response.put("success", resp.getSuccess());
+		} catch(Exception e) {
+			log.error(e.getMessage(), e);
 		}
 		
 		return response;

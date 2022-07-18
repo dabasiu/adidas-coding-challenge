@@ -15,6 +15,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.adidas.subscription.dto.SubscriptionApiDTO;
 import com.adidas.subscription.dto.responses.SubscriptionAPICreateResponseDTO;
+import com.adidas.subscription.dto.responses.SubscriptionAPIGetAllResponseDTO;
+import com.adidas.subscription.dto.responses.SubscriptionAPIGetResponseDTO;
+import com.adidas.subscription.dto.responses.SubscriptionAPIResponseDTO;
 import com.adidas.subscription.service.SubscriptionServiceProxy;
 
 /**
@@ -47,6 +50,36 @@ public class SubscriptionServiceProxyImpl implements SubscriptionServiceProxy {
 		HttpEntity<SubscriptionApiDTO> httpEntity = new HttpEntity<>(dto);
 
 		ResponseEntity<SubscriptionAPICreateResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.POST, httpEntity, new ParameterizedTypeReference<SubscriptionAPICreateResponseDTO>() {
+		});
+		
+		return response.getBody();
+	}
+	
+	@Override
+	public SubscriptionAPIResponseDTO cancelSubscription(Long id) {
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(this.getEndPoint("/subscriptions/" + id));
+
+		ResponseEntity<SubscriptionAPIResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.DELETE, null, new ParameterizedTypeReference<SubscriptionAPIResponseDTO>() {
+		});
+		
+		return response.getBody();
+	}
+	
+	@Override
+	public SubscriptionAPIGetResponseDTO getSubscription(Long id) {
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(this.getEndPoint("/subscriptions/" + id));
+
+		ResponseEntity<SubscriptionAPIGetResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, new ParameterizedTypeReference<SubscriptionAPIGetResponseDTO>() {
+		});
+		
+		return response.getBody();
+	}
+	
+	@Override
+	public SubscriptionAPIGetAllResponseDTO getAllSubscriptions() {
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(this.getEndPoint("/subscriptions/"));
+
+		ResponseEntity<SubscriptionAPIGetAllResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, new ParameterizedTypeReference<SubscriptionAPIGetAllResponseDTO>() {
 		});
 		
 		return response.getBody();

@@ -31,7 +31,7 @@
 			<column name="first_name" type="VARCHAR(255)" />
 			<column name="gender" type="int" />
 			<column name="birth_date" type="date" />
-			<column name="newsletter_id" type="int" />
+			<column name="newsletter_id" type="bigint" />
 			<column name="consent" type="boolean" />
 			<column name="mail_sent" type="boolean" />
 			<column name="mail_sent_when" type="TIMESTAMP WITH TIME ZONE" />
@@ -40,6 +40,12 @@
 			<column name="utime" type="TIMESTAMP WITH TIME ZONE" />
 			<column name="version" type="int" />
 		</createTable>
+	</changeSet>
+	
+	<changeSet id="20220717_1_tv_5" author="Telmo Viana">
+		<createIndex tableName="subscription" indexName="uniq_subs_email" unique="true">
+			<column name="email"></column>
+		</createIndex>
 	</changeSet>
 	
 </databaseChangeLog>
