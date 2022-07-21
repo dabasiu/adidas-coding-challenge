@@ -18,6 +18,8 @@ import com.adidas.subscription.entities.Subscription;
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
 	List<Subscription> findByEmail(String email);
+
+	List<Subscription> findByEmailAndActiveTrue(String email);
 	
 	List<Subscription> findByActiveTrue();
 }

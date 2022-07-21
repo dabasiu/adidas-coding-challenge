@@ -3,18 +3,28 @@
  */
 package com.adidas.subscription.service.impl;
 
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import com.adidas.subscription.dto.SubscriptionApiDTO;
+import com.adidas.subscription.dto.responses.SubscriptionAPIResponseDTO;
 import com.adidas.subscription.entities.Subscription;
+import com.adidas.subscription.exception.ErrorCode;
+import com.adidas.subscription.exception.ServiceError;
+import com.adidas.subscription.exception.SubscriptionException;
+import com.adidas.subscription.exception.SubscriptionExceptionUtils;
 import com.adidas.subscription.repository.SubscriptionRepository;
+import com.adidas.subscription.service.SubscriptionMailProxy;
 import com.adidas.subscription.service.SubscriptionService;
 
 import ma.glasnost.orika.MapperFactory;
@@ -32,82 +42,213 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	
 	private MapperFactory mapperFactory;
 	
+	private SubscriptionMailProxy mailService;
+	
 	@Autowired
-	public SubscriptionServiceImpl(SubscriptionRepository subscriptionRepository, MapperFactory mapperFactory) {
+	public SubscriptionServiceImpl(SubscriptionRepository subscriptionRepository, MapperFactory mapperFactory, SubscriptionMailProxy mailService) {
 		this.subscriptionRepository = subscriptionRepository;
 		this.mapperFactory = mapperFactory;
+		this.mailService = mailService;
 	}
 
 	@Override
-	public Long create(SubscriptionApiDTO dto) {
+	public Long create(SubscriptionApiDTO dto) throws SubscriptionException {
+
+		final List<ServiceError> errors = new ArrayList<>();
 		
-		log.debug("create Subscription");
-		
-		List<Subscription> existingSubscription = subscriptionRepository.findByEmail(dto.getEmail());
-		
-		if(!CollectionUtils.isEmpty(existingSubscription)) {
-			for(Subscription entity : existingSubscription) {
-				if(Boolean.TRUE.equals(entity.getActive())) {
-					log.warn("Subscription for email {} already exists!", dto.getEmail());
+		try {
+			log.debug("create Subscription");
+			
+			errors.addAll(validatefields(dto));
+			
+			if(CollectionUtils.isEmpty(errors)) {
+				List<Subscription> existingSubscriptions = subscriptionRepository.findByEmail(dto.getEmail());
+				
+				Subscription existingSubscription = existingSubscriptions.stream().findFirst().orElse(null);
+				
+				if(existingSubscription != null && Boolean.TRUE.equals(existingSubscription.getActive())) {
+					log.warn("Subscription for email {} already exists", dto.getEmail());
+					errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_006, dto.getEmail()));
+				}
+				
+				if(CollectionUtils.isEmpty(errors)) {
+					mapperFactory.classMap(SubscriptionApiDTO.class, Subscription.class);
 					
-					return entity.getId();
+					if(existingSubscription != null) {
+						mapperFactory.getMapperFacade().map(dto, existingSubscription);
+					} else {
+						existingSubscription = mapperFactory.getMapperFacade().map(dto, Subscription.class);
+					}
+					
+					Subscription created = subscriptionRepository.save(existingSubscription);
+					
+					return created.getId();
 				}
 			}
+		} catch(Exception e) {
+			log.error(e.getMessage(), e);
+			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_001));
+		} finally {
+			SubscriptionExceptionUtils.checkHasErrors(errors);
 		}
 		
-		mapperFactory.classMap(SubscriptionApiDTO.class, Subscription.class);
-		Subscription entity = mapperFactory.getMapperFacade().map(dto, Subscription.class);
-		
-		Subscription created = subscriptionRepository.save(entity);
-		
-		//send email.....
-
-		return created.getId();
+		return null;
 	}
-
+	
+	@Async
 	@Override
-	public boolean delete(Long id) {
+	public void processEmailForSubscriptionCreated(SubscriptionApiDTO dto) throws SubscriptionException {
+
+		final List<ServiceError> errors = new ArrayList<>();
 		
-		log.debug("update Subscription");
-		
-		Subscription entity = subscriptionRepository.findById(id).orElse(null);
-		
-		if(entity != null) {
-			if(Boolean.TRUE.equals(entity.getActive())) {
-				entity.setActive(false);
-				subscriptionRepository.save(entity);
-			} else {
-				log.warn("Subscription with id {} for email {} already cancelled", id, entity.getEmail());
+		try {
+			log.debug("processEmailForSubscriptionCreated");
+			
+			List<Subscription> existingSubscriptions = subscriptionRepository.findByEmailAndActiveTrue(dto.getEmail());
+			
+			Subscription entity = existingSubscriptions.stream().findFirst().orElse(null);
+			
+			if(entity != null) {
+				//send email.....
+				SubscriptionAPIResponseDTO response = mailService.sendEmail(dto);
+				
+				if(response.getSuccess()) {
+					entity.setMailSent(true);
+					entity.setMailSentWhen(new Date());
+					subscriptionRepository.save(entity);
+				}
 			}
-		} else {
-			log.warn("Subscription with id {} not found", id);
+		} catch(Exception e) {
+			log.error(e.getMessage(), e);
+			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_001));
+		} finally {
+			SubscriptionExceptionUtils.checkHasErrors(errors);
 		}
-		
-		return true;
 	}
 
 	@Override
-	public Optional<SubscriptionApiDTO> retrieveById(Long id) {
+	public boolean delete(String email) throws SubscriptionException {
+
+		final List<ServiceError> errors = new ArrayList<>();
 		
+		try {
+			log.debug("cancel Subscription");
+			
+			errors.addAll(validateEmail(email));
+			
+			if(CollectionUtils.isEmpty(errors)) {
+
+				Subscription entity = subscriptionRepository.findByEmail(email).stream().findFirst().orElse(null);
+				
+				if(entity != null) {
+					if(Boolean.TRUE.equals(entity.getActive())) {
+						entity.setActive(false);
+						subscriptionRepository.save(entity);
+					} else {
+						log.warn("Subscription for email {} already cancelled", email);
+						errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_008, email));
+					}
+				} else {
+					log.warn("Subscription for email {} not found", email);
+					errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_007, email));
+				}
+				
+				return true;
+			}
+			
+		} catch(Exception e) {
+			log.error(e.getMessage(), e);
+			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_001));
+		} finally {
+			SubscriptionExceptionUtils.checkHasErrors(errors);
+		}
+		
+		return false;
+	}
+
+	@Override
+	public Optional<SubscriptionApiDTO> retrieveByEmail(String email) throws SubscriptionException {
+
+		final List<ServiceError> errors = new ArrayList<>();
 		SubscriptionApiDTO dto = null;
 		
-		Subscription entity = subscriptionRepository.findById(id).orElse(null);
-		
-		if(entity != null) {
-			mapperFactory.classMap(Subscription.class, SubscriptionApiDTO.class);
-			dto = mapperFactory.getMapperFacade().map(entity, SubscriptionApiDTO.class);
+		try {
+			log.debug("retrieveByEmail Subscription");
+			
+			errors.addAll(validateEmail(email));
+			
+			if(CollectionUtils.isEmpty(errors)) {
+
+				Subscription entity = subscriptionRepository.findByEmailAndActiveTrue(email).stream().findFirst().orElse(null);
+				
+				if(entity != null) {
+					mapperFactory.classMap(Subscription.class, SubscriptionApiDTO.class);
+					dto = mapperFactory.getMapperFacade().map(entity, SubscriptionApiDTO.class);
+				} else {
+					log.warn("Subscription for email {} not found", email);
+					errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_007, email));
+				}
+			}
+		} catch(Exception e) {
+			log.error(e.getMessage(), e);
+			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_001));
+		} finally {
+			SubscriptionExceptionUtils.checkHasErrors(errors);
 		}
 		
 		return Optional.ofNullable(dto);
 	}
 
 	@Override
-	public List<SubscriptionApiDTO> retrieveAll() {
+	public List<SubscriptionApiDTO> retrieveAll() throws SubscriptionException {
+
+		final List<ServiceError> errors = new ArrayList<>();
+		final List<SubscriptionApiDTO> dtos = new ArrayList<>();
 		
-		List<Subscription> entities = subscriptionRepository.findByActiveTrue();
+		try {
+			log.debug("retrieveAll");
 		
-		mapperFactory.classMap(Subscription.class, SubscriptionApiDTO.class);
+			List<Subscription> entities = subscriptionRepository.findByActiveTrue();
+			
+			mapperFactory.classMap(Subscription.class, SubscriptionApiDTO.class);
+			
+			dtos.addAll(mapperFactory.getMapperFacade().mapAsList(entities, SubscriptionApiDTO.class));
+		} catch(Exception e) {
+			log.error(e.getMessage(), e);
+			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_001));
+		} finally {
+			SubscriptionExceptionUtils.checkHasErrors(errors);
+		}
 		
-		return mapperFactory.getMapperFacade().mapAsList(entities, SubscriptionApiDTO.class);
+		return dtos;
+	}
+
+	protected List<ServiceError> validatefields(SubscriptionApiDTO dto) {
+		final List<ServiceError> errors = new ArrayList<>();
+
+		if(!StringUtils.hasLength(dto.getEmail())) {
+			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_002));
+		}
+		
+		if(dto.getBirthDate() == null) {
+			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_009));
+		}
+		
+		if(!dto.isConsent()) {
+			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_010));
+		}
+		
+		return errors;
+	}
+	
+	protected List<ServiceError> validateEmail(String email) {
+		final List<ServiceError> errors = new ArrayList<>();
+		
+
+		if (!StringUtils.hasLength(email) || !email.matches("^(.+)@(.+)$")) {
+			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_011, email));
+		}
+		
+		return errors;
 	}
 }
