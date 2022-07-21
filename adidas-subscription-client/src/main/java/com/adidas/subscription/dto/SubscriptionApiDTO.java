@@ -49,7 +49,7 @@ public class SubscriptionApiDTO {
 	@ApiModelProperty(required = true, value = "flag for consent", example = "true")
 	private boolean consent;
 
-	@NotNull(message = "bla")
+	@NotNull(message = "newsletterId is a required field")
 	@ApiModelProperty(required = true)
 	private Long newsletterId;
 	

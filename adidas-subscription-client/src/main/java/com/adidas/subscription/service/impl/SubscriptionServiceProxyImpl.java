@@ -25,7 +25,7 @@ import com.adidas.subscription.service.SubscriptionServiceProxy;
  *
  */
 @Component
-public class SubscriptionServiceProxyImpl implements SubscriptionServiceProxy {
+public class SubscriptionServiceProxyImpl extends AbstractProxyImpl implements SubscriptionServiceProxy {
 
 	private RestTemplate restTemplate;
 	
@@ -36,16 +36,10 @@ public class SubscriptionServiceProxyImpl implements SubscriptionServiceProxy {
 	public SubscriptionServiceProxyImpl(RestTemplate restTemplate) {
 		this.restTemplate = restTemplate;
 	}
-
-	private String getEndPoint(String path) {
-		StringBuilder builder = new StringBuilder();
-		builder.append(url).append(path);
-		return builder.toString();
-	}
 	
 	@Override
 	public SubscriptionAPICreateResponseDTO createSubscription(SubscriptionApiDTO dto) {
-		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(this.getEndPoint("/subscriptions/create"));
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getEndPoint(url, "/subscriptions/create"));
 
 		HttpEntity<SubscriptionApiDTO> httpEntity = new HttpEntity<>(dto);
 
@@ -56,8 +50,8 @@ public class SubscriptionServiceProxyImpl implements SubscriptionServiceProxy {
 	}
 	
 	@Override
-	public SubscriptionAPIResponseDTO cancelSubscription(Long id) {
-		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(this.getEndPoint("/subscriptions/" + id));
+	public SubscriptionAPIResponseDTO cancelSubscription(String email) {
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getEndPoint(url, "/subscriptions/" + email));
 
 		ResponseEntity<SubscriptionAPIResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.DELETE, null, new ParameterizedTypeReference<SubscriptionAPIResponseDTO>() {
 		});
@@ -66,8 +60,8 @@ public class SubscriptionServiceProxyImpl implements SubscriptionServiceProxy {
 	}
 	
 	@Override
-	public SubscriptionAPIGetResponseDTO getSubscription(Long id) {
-		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(this.getEndPoint("/subscriptions/" + id));
+	public SubscriptionAPIGetResponseDTO getSubscription(String email) {
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getEndPoint(url, "/subscriptions/" + email));
 
 		ResponseEntity<SubscriptionAPIGetResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, new ParameterizedTypeReference<SubscriptionAPIGetResponseDTO>() {
 		});
@@ -77,7 +71,7 @@ public class SubscriptionServiceProxyImpl implements SubscriptionServiceProxy {
 	
 	@Override
 	public SubscriptionAPIGetAllResponseDTO getAllSubscriptions() {
-		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(this.getEndPoint("/subscriptions/"));
+		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getEndPoint(url, "/subscriptions/"));
 
 		ResponseEntity<SubscriptionAPIGetAllResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, new ParameterizedTypeReference<SubscriptionAPIGetAllResponseDTO>() {
 		});

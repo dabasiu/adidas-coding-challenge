@@ -16,7 +16,7 @@ import com.adidas.subscription.dto.responses.SubscriptionAPIResponseDTO;
 public interface SubscriptionServiceProxy {
 
 	public SubscriptionAPICreateResponseDTO createSubscription(SubscriptionApiDTO dto);
-	public SubscriptionAPIResponseDTO cancelSubscription(Long id);
-	public SubscriptionAPIGetResponseDTO getSubscription(Long id);
+	public SubscriptionAPIResponseDTO cancelSubscription(String email);
+	public SubscriptionAPIGetResponseDTO getSubscription(String email);
 	public SubscriptionAPIGetAllResponseDTO getAllSubscriptions();
 }

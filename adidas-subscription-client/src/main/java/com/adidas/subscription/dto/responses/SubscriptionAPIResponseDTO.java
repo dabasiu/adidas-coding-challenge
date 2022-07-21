@@ -3,6 +3,7 @@
  */
 package com.adidas.subscription.dto.responses;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -12,7 +13,7 @@ import java.util.List;
 public class SubscriptionAPIResponseDTO {
 
 	private boolean success;
-	private List<String> messages;
+	private List<String> messages = Collections.emptyList();
 	
 	public boolean getSuccess() {
 		return success;
