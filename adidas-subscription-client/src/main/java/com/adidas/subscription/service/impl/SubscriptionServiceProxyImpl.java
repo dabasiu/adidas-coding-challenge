@@ -41,7 +41,7 @@ public class SubscriptionServiceProxyImpl extends AbstractProxyImpl implements S
 	public SubscriptionAPICreateResponseDTO createSubscription(SubscriptionApiDTO dto) {
 		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getEndPoint(url, "/subscriptions/create"));
 
-		HttpEntity<SubscriptionApiDTO> httpEntity = new HttpEntity<>(dto);
+		HttpEntity<SubscriptionApiDTO> httpEntity = new HttpEntity<>(dto, createHeaders());
 
 		ResponseEntity<SubscriptionAPICreateResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.POST, httpEntity, new ParameterizedTypeReference<SubscriptionAPICreateResponseDTO>() {
 		});
@@ -53,7 +53,7 @@ public class SubscriptionServiceProxyImpl extends AbstractProxyImpl implements S
 	public SubscriptionAPIResponseDTO cancelSubscription(String email) {
 		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getEndPoint(url, "/subscriptions/" + email));
 
-		ResponseEntity<SubscriptionAPIResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.DELETE, null, new ParameterizedTypeReference<SubscriptionAPIResponseDTO>() {
+		ResponseEntity<SubscriptionAPIResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.DELETE, new HttpEntity<>(createHeaders()), new ParameterizedTypeReference<SubscriptionAPIResponseDTO>() {
 		});
 		
 		return response.getBody();
@@ -63,7 +63,7 @@ public class SubscriptionServiceProxyImpl extends AbstractProxyImpl implements S
 	public SubscriptionAPIGetResponseDTO getSubscription(String email) {
 		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getEndPoint(url, "/subscriptions/" + email));
 
-		ResponseEntity<SubscriptionAPIGetResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, new ParameterizedTypeReference<SubscriptionAPIGetResponseDTO>() {
+		ResponseEntity<SubscriptionAPIGetResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, new HttpEntity<>(createHeaders()), new ParameterizedTypeReference<SubscriptionAPIGetResponseDTO>() {
 		});
 		
 		return response.getBody();
@@ -73,7 +73,7 @@ public class SubscriptionServiceProxyImpl extends AbstractProxyImpl implements S
 	public SubscriptionAPIGetAllResponseDTO getAllSubscriptions() {
 		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getEndPoint(url, "/subscriptions/"));
 
-		ResponseEntity<SubscriptionAPIGetAllResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, new ParameterizedTypeReference<SubscriptionAPIGetAllResponseDTO>() {
+		ResponseEntity<SubscriptionAPIGetAllResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, new HttpEntity<>(createHeaders()), new ParameterizedTypeReference<SubscriptionAPIGetAllResponseDTO>() {
 		});
 		
 		return response.getBody();

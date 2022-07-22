@@ -117,7 +117,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 					entity.setMailSentWhen(new Date());
 					subscriptionRepository.save(entity);
 				}
+			} else {
+				log.warn("Subscription for email {} not found", dto.getEmail());
 			}
+			
 		} catch(Exception e) {
 			log.error(e.getMessage(), e);
 			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_001));

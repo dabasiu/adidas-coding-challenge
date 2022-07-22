@@ -38,7 +38,7 @@ public class SubscriptionMailProxyImpl extends AbstractProxyImpl implements Subs
 	public SubscriptionAPIResponseDTO sendEmail(SubscriptionApiDTO dto) {
 		UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(getEndPoint(url, "/email/send"));
 
-		HttpEntity<SubscriptionApiDTO> httpEntity = new HttpEntity<>(dto);
+		HttpEntity<SubscriptionApiDTO> httpEntity = new HttpEntity<>(dto, createHeaders());
 
 		ResponseEntity<SubscriptionAPIResponseDTO> response = restTemplate.exchange(builder.toUriString(), HttpMethod.POST, httpEntity, new ParameterizedTypeReference<SubscriptionAPIResponseDTO>() {
 		});

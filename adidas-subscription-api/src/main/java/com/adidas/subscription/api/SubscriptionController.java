@@ -127,7 +127,6 @@ public class SubscriptionController {
 		} catch(Exception e) {
 			log.error(e.getMessage(), e);
 		}
-
 		
 		return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
 	}
