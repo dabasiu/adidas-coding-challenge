@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
 
 import com.adidas.subscription.dto.SubscriptionApiDTO;
@@ -26,6 +27,7 @@ import com.adidas.subscription.exception.SubscriptionExceptionUtils;
 import com.adidas.subscription.repository.SubscriptionRepository;
 import com.adidas.subscription.service.SubscriptionMailProxy;
 import com.adidas.subscription.service.SubscriptionService;
+import com.adidas.subscription.util.StopWatchUtils;
 
 import ma.glasnost.orika.MapperFactory;
 
@@ -55,14 +57,20 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	public Long create(SubscriptionApiDTO dto) throws SubscriptionException {
 
 		final List<ServiceError> errors = new ArrayList<>();
+		final StopWatch sw = createStopWatch("create subscription");
 		
 		try {
 			log.debug("create Subscription");
 			
+			iterateStopWatchOperation(sw, "validatefields");
 			errors.addAll(validatefields(dto));
 			
 			if(CollectionUtils.isEmpty(errors)) {
+				
+				iterateStopWatchOperation(sw, "findByEmail");
 				List<Subscription> existingSubscriptions = subscriptionRepository.findByEmail(dto.getEmail());
+
+				iterateStopWatchOperation(sw, "validate existing data");
 				
 				Subscription existingSubscription = existingSubscriptions.stream().findFirst().orElse(null);
 				
@@ -72,6 +80,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 				}
 				
 				if(CollectionUtils.isEmpty(errors)) {
+					
+					iterateStopWatchOperation(sw, "mapper dto to entity");
 					mapperFactory.classMap(SubscriptionApiDTO.class, Subscription.class);
 					
 					if(existingSubscription != null) {
@@ -79,6 +89,8 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 					} else {
 						existingSubscription = mapperFactory.getMapperFacade().map(dto, Subscription.class);
 					}
+					
+					iterateStopWatchOperation(sw, "save");
 					
 					Subscription created = subscriptionRepository.save(existingSubscription);
 					
@@ -89,6 +101,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 			log.error(e.getMessage(), e);
 			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_001));
 		} finally {
+			log.debug(logStopWatch(sw));
 			SubscriptionExceptionUtils.checkHasErrors(errors);
 		}
 		
@@ -100,22 +113,32 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 	public void processEmailForSubscriptionCreated(SubscriptionApiDTO dto) throws SubscriptionException {
 
 		final List<ServiceError> errors = new ArrayList<>();
+		final StopWatch sw = createStopWatch("processEmailForSubscriptionCreated");
 		
 		try {
 			log.debug("processEmailForSubscriptionCreated");
+			iterateStopWatchOperation(sw, "findByEmailAndActiveTrue");
 			
 			List<Subscription> existingSubscriptions = subscriptionRepository.findByEmailAndActiveTrue(dto.getEmail());
 			
 			Subscription entity = existingSubscriptions.stream().findFirst().orElse(null);
 			
 			if(entity != null) {
+
+				iterateStopWatchOperation(sw, "sendEmail");
+				
 				//send email.....
 				SubscriptionAPIResponseDTO response = mailService.sendEmail(dto);
 				
 				if(response.getSuccess()) {
+
+					iterateStopWatchOperation(sw, "save entity");
+					
 					entity.setMailSent(true);
 					entity.setMailSentWhen(new Date());
 					subscriptionRepository.save(entity);
+				} else {
+					log.warn("Email to {} corresponding to subscription was not sent", dto.getEmail());
 				}
 			} else {
 				log.warn("Subscription for email {} not found", dto.getEmail());
@@ -125,6 +148,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 			log.error(e.getMessage(), e);
 			errors.add(SubscriptionExceptionUtils.getServiceError(ErrorCode.ERROR_001));
 		} finally {
+			log.debug(logStopWatch(sw));
 			SubscriptionExceptionUtils.checkHasErrors(errors);
 		}
 	}
@@ -253,5 +277,31 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 		}
 		
 		return errors;
+	}
+	
+	private StopWatch createStopWatch(String str) {
+		return new StopWatch(str);
+	}
+	
+	private void iterateStopWatchOperation(final StopWatch sw, String operation) {
+		if(sw != null) {
+			stopStopWatch(sw);
+			sw.start(operation);	
+		}
+	}
+	
+	private String logStopWatch(final StopWatch sw) {
+		if(sw != null) {
+			stopStopWatch(sw);
+			return StopWatchUtils.prettyPrintStopWatchMilis(sw);
+		}
+		
+		return "";
+	}
+	
+	private void stopStopWatch(final StopWatch sw) {
+		if(sw != null && sw.isRunning()) {
+			sw.stop();
+		}
 	}
 }
