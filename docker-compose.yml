@@ -1,0 +1,40 @@
+version: "3.7"
+services:
+    my-postgres-db:
+        build: postgres/
+        image: my-postgres-db
+        container_name: my-postgres-db
+        ports:
+          - "5435:5432"
+          
+    adidas-subscription-api:
+        build: adidas-subscription-api/
+        image: adidas-subscription-api
+        container_name: adidas-subscription-api
+        ports:
+          - "8094:8094"
+        environment:
+            SPRING_APPLICATION_JSON: '{
+              "subscription.domain.url": "http://adidas-subscription-service:8095"
+            }'
+          
+    adidas-subscription-mail:
+        build: adidas-subscription-mail/
+        image: adidas-subscription-mail
+        container_name: adidas-subscription-mail
+        ports:
+          - "8096:8096"
+          
+    adidas-subscription-service:
+        build: adidas-subscription-service/
+        image: adidas-subscription-service
+        container_name: adidas-subscription-service
+        ports:
+          - "8095:8095"
+        depends_on:
+          - my-postgres-db
+        environment:
+            SPRING_APPLICATION_JSON: '{
+              "spring.datasource.url": "jdbc:postgresql://my-postgres-db:5432/adidas_subscription",
+              "emailservice.domain.url": "http://adidas-subscription-mail:8096"
+            }'
