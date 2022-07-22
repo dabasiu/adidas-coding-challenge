@@ -53,3 +53,4 @@ Subscription Service runs localhost:8095 and email service at localhost:8096 but
 - Subscription Service invokes Email Service asynchronously. An alternative approach would be use frameworks such as Kafka
 - The field newsletter Id corresponding to the campaign was not very clear. I kept it simple with no FKs to other entities but I imagine that makes sense another entity Newsletter/Campaign but than another endpoint to retrieve the data available would make sense. Decided to not overthink
 - no CI/CD proposal neither config files for a kubernetes cluster were made
+- persistence approach can be improved, no batch or statement management was used but on a larger scale it would be necessary
