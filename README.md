@@ -16,7 +16,7 @@ Develop a SUBSCRIPTION SYSTEM. Without UI system will be composed of three micro
 - Liquibase
 - Postgresql
 - Lombok
-- Orika - used to work with dozer but decided to give this a try
+- Orika - used to work with dozer but decided to give this a try. Maybe MapStruck would be a better choice due to performance
 - Docker
 - JUnit and Mockito for unit tests
 
