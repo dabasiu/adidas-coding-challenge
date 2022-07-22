@@ -24,7 +24,7 @@ public class SubscriptionException extends Exception {
 	}
 	
 	public SubscriptionException(List<ServiceError> errorList) {
-		super();
+		super("Some errors were found during the operation");
 		this.setErrorList(errorList);
 	}
 
